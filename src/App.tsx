@@ -11,6 +11,16 @@ interface Todo {
   category: Category
 }
 
+interface FloatingXp {
+  id: number
+  value: number
+  x: number
+  y: number
+}
+
+type FilterType = 'all' | 'active' | 'completed'
+type SortType = 'newest' | 'oldest' | 'category'
+
 interface CategoryXp {
   work: number
   health: number
@@ -128,6 +138,12 @@ function App() {
   const [newAchievement, setNewAchievement] = useState<string | null>(null)
   const [showConfetti, setShowConfetti] = useState(false)
   const [showSkillTree, setShowSkillTree] = useState(false)
+  const [floatingXps, setFloatingXps] = useState<FloatingXp[]>([])
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editText, setEditText] = useState('')
+  const [filter, setFilter] = useState<FilterType>('all')
+  const [sort, setSort] = useState<SortType>('newest')
+  const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all')
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
@@ -252,6 +268,18 @@ function App() {
           setShowConfetti(false)
         }, 2500)
       }
+
+      // Spawn floating XP animation
+      const floatingXp: FloatingXp = {
+        id: Date.now(),
+        value: xpEarned,
+        x: Math.random() * 40 + 30, // Random position 30-70%
+        y: 50,
+      }
+      setFloatingXps(prev => [...prev, floatingXp])
+      setTimeout(() => {
+        setFloatingXps(prev => prev.filter(f => f.id !== floatingXp.id))
+      }, 1500)
     }
   }
 
@@ -264,6 +292,55 @@ function App() {
       addTodo()
     }
   }
+
+  const startEditing = (todo: Todo) => {
+    setEditingId(todo.id)
+    setEditText(todo.text)
+  }
+
+  const saveEdit = () => {
+    if (editingId === null) return
+    if (editText.trim() === '') {
+      cancelEdit()
+      return
+    }
+    setTodos(todos.map(t =>
+      t.id === editingId ? { ...t, text: editText.trim() } : t
+    ))
+    setEditingId(null)
+    setEditText('')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditText('')
+  }
+
+  const handleEditKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      saveEdit()
+    } else if (e.key === 'Escape') {
+      cancelEdit()
+    }
+  }
+
+  // Filter and sort todos
+  const filteredTodos = todos
+    .filter(todo => {
+      if (filter === 'active' && todo.completed) return false
+      if (filter === 'completed' && !todo.completed) return false
+      if (categoryFilter !== 'all' && todo.category !== categoryFilter) return false
+      return true
+    })
+    .sort((a, b) => {
+      if (sort === 'newest') return b.id - a.id
+      if (sort === 'oldest') return a.id - b.id
+      if (sort === 'category') {
+        const catOrder = CATEGORIES.findIndex(c => c.id === a.category) - CATEGORIES.findIndex(c => c.id === b.category)
+        return catOrder !== 0 ? catOrder : b.id - a.id
+      }
+      return 0
+    })
 
   const completedCount = todos.filter(t => t.completed).length
   const totalCount = todos.length
@@ -279,6 +356,18 @@ function App() {
   return (
     <div className="app-container">
       {showConfetti && <div className="confetti" />}
+
+      {/* Floating XP animations */}
+      {floatingXps.map(xp => (
+        <div
+          key={xp.id}
+          className="floating-xp"
+          style={{ left: `${xp.x}%`, top: `${xp.y}%` }}
+          aria-hidden="true"
+        >
+          +{xp.value} XP
+        </div>
+      ))}
 
       {showLevelUp && (
         <div className="level-up-overlay">
@@ -376,22 +465,29 @@ function App() {
           <p className="subtitle">Level up your productivity</p>
         </header>
 
-        <div className="stats-panel">
-          <div className="stat-card level-card">
-            <div className="stat-icon">⚔️</div>
+        <div className="stats-panel" role="region" aria-label="Player statistics">
+          <div className="stat-card level-card" role="group" aria-label="Current level">
+            <div className="stat-icon" aria-hidden="true">⚔️</div>
             <div className="stat-content">
               <span className="stat-label">Level</span>
               <span className="stat-value">{stats.level}</span>
             </div>
           </div>
 
-          <div className="stat-card xp-card">
+          <div className="stat-card xp-card" role="group" aria-label="Experience progress">
             <div className="stat-content full-width">
               <div className="xp-header">
                 <span className="stat-label">XP Progress</span>
                 <span className="xp-text">{stats.xp % XP_PER_LEVEL} / {XP_PER_LEVEL}</span>
               </div>
-              <div className="xp-bar">
+              <div
+                className="xp-bar"
+                role="progressbar"
+                aria-valuenow={stats.xp % XP_PER_LEVEL}
+                aria-valuemin={0}
+                aria-valuemax={XP_PER_LEVEL}
+                aria-label={`${stats.xp % XP_PER_LEVEL} of ${XP_PER_LEVEL} XP to next level`}
+              >
                 <div className="xp-fill" style={{ width: `${xpProgress}%` }} />
               </div>
               <span className="xp-hint">{xpToNextLevel} XP to next level</span>
@@ -421,10 +517,14 @@ function App() {
         </div>
 
         {/* Skill Tree Button */}
-        <button className="skill-tree-button" onClick={() => setShowSkillTree(true)}>
-          <span className="skill-tree-icon">🌳</span>
+        <button
+          className="skill-tree-button"
+          onClick={() => setShowSkillTree(true)}
+          aria-label="View Skill Tree - Track your category progress"
+        >
+          <span className="skill-tree-icon" aria-hidden="true">🌳</span>
           <span>View Skill Tree</span>
-          <div className="category-previews">
+          <div className="category-previews" aria-hidden="true">
             {CATEGORIES.map(cat => (
               <span
                 key={cat.id}
@@ -453,7 +553,7 @@ function App() {
         )}
 
         <div className="input-section">
-          <div className="category-selector">
+          <div className="category-selector" role="radiogroup" aria-label="Quest category">
             {CATEGORIES.map(category => (
               <button
                 key={category.id}
@@ -461,13 +561,20 @@ function App() {
                 onClick={() => setSelectedCategory(category.id)}
                 style={{ '--cat-color': category.color } as React.CSSProperties}
                 title={category.name}
+                role="radio"
+                aria-checked={selectedCategory === category.id}
+                aria-label={`${category.name} category`}
               >
-                <span>{category.icon}</span>
+                <span aria-hidden="true">{category.icon}</span>
               </button>
             ))}
           </div>
           <div className="input-container">
+            <label htmlFor="todo-input" className="visually-hidden">
+              Add a new {getCategoryInfo(selectedCategory).name.toLowerCase()} quest
+            </label>
             <input
+              id="todo-input"
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -475,17 +582,19 @@ function App() {
               placeholder={`Add a ${getCategoryInfo(selectedCategory).name.toLowerCase()} quest...`}
               className="todo-input"
               style={{ '--input-accent': getCategoryInfo(selectedCategory).color } as React.CSSProperties}
+              aria-describedby="xp-reward-hint"
             />
             <button
               onClick={addTodo}
               className="add-button"
               style={{ background: getCategoryInfo(selectedCategory).color }}
+              aria-label="Add quest"
             >
-              <span className="button-icon">+</span>
+              <span className="button-icon" aria-hidden="true">+</span>
               <span className="button-text">Add Quest</span>
             </button>
           </div>
-          <p className="xp-reward">
+          <p className="xp-reward" id="xp-reward-hint">
             +{Math.floor(XP_PER_TODO * streakMultiplier * getCategoryBonus(getTier(stats.categoryXp[selectedCategory])))} XP per completed quest
             {streakMultiplier > 1 && <span className="bonus-text"> (streak bonus!)</span>}
             {getCategoryBonus(getTier(stats.categoryXp[selectedCategory])) > 1 && (
@@ -497,10 +606,17 @@ function App() {
         {totalCount > 0 && (
           <div className="progress-section">
             <div className="progress-header">
-              <span>Today's Progress</span>
+              <span>Quest Progress</span>
               <span>{completedCount} / {totalCount}</span>
             </div>
-            <div className="progress-bar">
+            <div
+              className="progress-bar"
+              role="progressbar"
+              aria-valuenow={completedCount}
+              aria-valuemin={0}
+              aria-valuemax={totalCount}
+              aria-label={`${completedCount} of ${totalCount} quests completed`}
+            >
               <div
                 className="progress-fill"
                 style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
@@ -509,25 +625,124 @@ function App() {
           </div>
         )}
 
-        <ul className="todo-list">
-          {todos.map(todo => {
+        {/* Filter and Sort Controls */}
+        {totalCount > 0 && (
+          <div className="filter-sort-section" role="group" aria-label="Filter and sort options">
+            <div className="filter-group">
+              <span className="filter-label">Filter:</span>
+              <div className="filter-buttons" role="radiogroup" aria-label="Status filter">
+                {(['all', 'active', 'completed'] as FilterType[]).map(f => (
+                  <button
+                    key={f}
+                    className={`filter-button ${filter === f ? 'active' : ''}`}
+                    onClick={() => setFilter(f)}
+                    role="radio"
+                    aria-checked={filter === f}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <span className="filter-label">Category:</span>
+              <div className="category-filter-buttons" role="radiogroup" aria-label="Category filter">
+                <button
+                  className={`category-filter-btn ${categoryFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setCategoryFilter('all')}
+                  role="radio"
+                  aria-checked={categoryFilter === 'all'}
+                  aria-label="All categories"
+                >
+                  All
+                </button>
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat.id}
+                    className={`category-filter-btn ${categoryFilter === cat.id ? 'active' : ''}`}
+                    onClick={() => setCategoryFilter(cat.id)}
+                    style={{ '--cat-color': cat.color } as React.CSSProperties}
+                    role="radio"
+                    aria-checked={categoryFilter === cat.id}
+                    aria-label={cat.name}
+                  >
+                    {cat.icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <span className="filter-label">Sort:</span>
+              <select
+                className="sort-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortType)}
+                aria-label="Sort order"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="category">By Category</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        <ul className="todo-list" role="list" aria-label="Quest list">
+          {filteredTodos.map(todo => {
             const catInfo = getCategoryInfo(todo.category)
+            const isEditing = editingId === todo.id
             return (
-              <li key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
+              <li
+                key={todo.id}
+                className={`todo-item ${todo.completed ? 'completed' : ''} ${isEditing ? 'editing' : ''}`}
+                role="listitem"
+              >
                 <button
                   className={`check-button ${todo.completed ? 'checked' : ''}`}
                   onClick={() => toggleTodo(todo.id)}
                   style={{ '--check-color': catInfo.color } as React.CSSProperties}
+                  aria-label={todo.completed ? `Mark "${todo.text}" as incomplete` : `Mark "${todo.text}" as complete`}
+                  aria-pressed={todo.completed}
                 >
-                  {todo.completed && <span className="check-icon">✓</span>}
+                  {todo.completed && <span className="check-icon" aria-hidden="true">✓</span>}
                 </button>
-                <span className="todo-category-icon" style={{ background: catInfo.color }}>
+                <span
+                  className="todo-category-icon"
+                  style={{ background: catInfo.color }}
+                  aria-label={catInfo.name}
+                  title={catInfo.name}
+                >
                   {catInfo.icon}
                 </span>
-                <span className="todo-text">{todo.text}</span>
-                <span className="todo-xp">+{todo.xpValue} XP</span>
-                <button onClick={() => deleteTodo(todo.id)} className="delete-button">
-                  <span>×</span>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    className="edit-input"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={handleEditKeyPress}
+                    onBlur={saveEdit}
+                    autoFocus
+                    aria-label="Edit quest text"
+                  />
+                ) : (
+                  <span
+                    className="todo-text"
+                    onDoubleClick={() => !todo.completed && startEditing(todo)}
+                    title={todo.completed ? undefined : "Double-click to edit"}
+                  >
+                    {todo.text}
+                  </span>
+                )}
+                <span className="todo-xp" aria-label={`${todo.xpValue} experience points`}>+{todo.xpValue} XP</span>
+                <button
+                  onClick={() => deleteTodo(todo.id)}
+                  className="delete-button"
+                  aria-label={`Delete "${todo.text}"`}
+                >
+                  <span aria-hidden="true">×</span>
                 </button>
               </li>
             )
@@ -535,10 +750,18 @@ function App() {
         </ul>
 
         {todos.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-icon">🗡️</div>
+          <div className="empty-state" role="status">
+            <div className="empty-icon" aria-hidden="true">🗡️</div>
             <p className="empty-title">No quests yet</p>
             <p className="empty-subtitle">Choose a category and add your first quest!</p>
+          </div>
+        )}
+
+        {todos.length > 0 && filteredTodos.length === 0 && (
+          <div className="empty-state" role="status">
+            <div className="empty-icon" aria-hidden="true">🔍</div>
+            <p className="empty-title">No matching quests</p>
+            <p className="empty-subtitle">Try adjusting your filters</p>
           </div>
         )}
       </div>
