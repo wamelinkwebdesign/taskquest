@@ -144,6 +144,7 @@ function App() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [sort, setSort] = useState<SortType>('newest')
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all')
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
@@ -285,6 +286,20 @@ function App() {
 
   const deleteTodo = (id: number) => {
     setTodos(todos.filter(todo => todo.id !== id))
+    setDeleteConfirm(null)
+  }
+
+  const confirmDelete = (id: number) => {
+    setDeleteConfirm(id)
+  }
+
+  const cancelDelete = () => {
+    setDeleteConfirm(null)
+  }
+
+  // Helper for pluralization
+  const pluralize = (count: number, singular: string, plural: string) => {
+    return count === 1 ? singular : plural
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -500,9 +515,9 @@ function App() {
               <span className="stat-label">
                 Streak {streakMultiplier > 1 && <span className="multiplier-badge">{streakMultiplier}x XP</span>}
               </span>
-              <span className="stat-value">{stats.streak} <small>days</small></span>
+              <span className="stat-value">{stats.streak} <small>{pluralize(stats.streak, 'day', 'days')}</small></span>
               {stats.longestStreak > 0 && (
-                <span className="longest-streak">Best: {stats.longestStreak} days</span>
+                <span className="longest-streak">Best: {stats.longestStreak} {pluralize(stats.longestStreak, 'day', 'days')}</span>
               )}
             </div>
           </div>
@@ -543,9 +558,15 @@ function App() {
             <h3>Achievements</h3>
             <div className="achievements-grid">
               {earnedAchievementObjects.map(achievement => (
-                <div key={achievement.id} className="achievement-badge" title={achievement.description}>
-                  <span className="badge-icon">{achievement.icon}</span>
-                  <span className="badge-name">{achievement.name}</span>
+                <div key={achievement.id} className="achievement-badge-wrapper">
+                  <div className="achievement-badge">
+                    <span className="badge-icon">{achievement.icon}</span>
+                    <span className="badge-name">{achievement.name}</span>
+                  </div>
+                  <div className="achievement-tooltip">
+                    <span className="tooltip-title">{achievement.name}</span>
+                    <span className="tooltip-desc">{achievement.description}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -737,13 +758,33 @@ function App() {
                   </span>
                 )}
                 <span className="todo-xp" aria-label={`${todo.xpValue} experience points`}>+{todo.xpValue} XP</span>
-                <button
-                  onClick={() => deleteTodo(todo.id)}
-                  className="delete-button"
-                  aria-label={`Delete "${todo.text}"`}
-                >
-                  <span aria-hidden="true">×</span>
-                </button>
+                {deleteConfirm === todo.id ? (
+                  <div className="delete-confirm">
+                    <span className="delete-confirm-text">Delete?</span>
+                    <button
+                      onClick={() => deleteTodo(todo.id)}
+                      className="delete-confirm-yes"
+                      aria-label="Confirm delete"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={cancelDelete}
+                      className="delete-confirm-no"
+                      aria-label="Cancel delete"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => confirmDelete(todo.id)}
+                    className="delete-button"
+                    aria-label={`Delete "${todo.text}"`}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
               </li>
             )
           })}

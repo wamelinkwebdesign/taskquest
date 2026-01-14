@@ -292,6 +292,61 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* Achievement Tooltip */
+.achievement-badge-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.achievement-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 27, 75, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  min-width: 180px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-out;
+  z-index: 100;
+  pointer-events: none;
+  text-align: center;
+}
+
+.achievement-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(30, 27, 75, 0.95);
+}
+
+.achievement-badge-wrapper:hover .achievement-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.tooltip-title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 0.25rem;
+}
+
+.tooltip-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Input Section */
 .input-section {
   margin-bottom: 1.5rem;
@@ -318,7 +373,7 @@
 }
 
 .todo-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .todo-input:focus {
@@ -521,6 +576,52 @@
 .delete-button:hover {
   background: rgba(239, 68, 68, 0.25);
   transform: scale(1.1);
+}
+
+/* Delete Confirmation */
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.delete-confirm-text {
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.delete-confirm-yes,
+.delete-confirm-no {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.delete-confirm-yes {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.delete-confirm-yes:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.delete-confirm-no {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.delete-confirm-no:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 /* Empty State */
@@ -777,6 +878,20 @@
   background: rgba(255, 255, 255, 0.12);
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.skill-tree-button::after {
+  content: '→';
+  margin-left: auto;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s;
+}
+
+.skill-tree-button:hover::after {
+  color: #a78bfa;
+  transform: translateX(4px);
 }
 
 .skill-tree-icon {
