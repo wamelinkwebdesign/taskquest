@@ -136,7 +136,9 @@ function App() {
 
     if (!wasCompleted) {
       const today = new Date().toDateString()
-      const yesterday = new Date(Date.now() - 86400000).toDateString()
+      const yesterdayDate = new Date()
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+      const yesterday = yesterdayDate.toDateString()
       let newStreak = stats.streak
       if (stats.lastCompletedDate === yesterday) {
         newStreak = stats.streak + 1
